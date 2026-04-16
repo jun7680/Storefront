@@ -67,4 +67,5 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 7 완료 (GitHub Actions) + 그리드 minHeight 상단 고정 — MVP 전체 완료
+- Last commit on feat/mvp-v0.1.0: `ci: pin runners to macos-26` (`2a70095`)
+- **v0.1.0-rc1 릴리스 완료** (2026-04-17 08:31 KST): https://github.com/jun7680/Storefront/releases/tag/v0.1.0-rc1 — Storefront-0.1.0.dmg (5.0MB) + SHA256SUMS.txt, prerelease 마킹
