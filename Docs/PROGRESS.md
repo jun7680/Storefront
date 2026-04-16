@@ -35,7 +35,7 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 | **TCA 리팩터** | ✅ 완료 | AppFeature(@Reducer, @ObservableState) / AppView / WelcomeView(StoreOf<AppFeature>) / TestStore 3건 통과 |
 | **2. SQLite 파일 열기 + 테이블 리스트** | ✅ 완료 | BrowserFeature / DatabaseClient(actor registry) / SchemaInspector / NavigationSplitView 2-column + Tables/Views 섹션 + 행수 배지 |
 | **3. 행 뷰어 + 라이브 리로드** | ✅ 완료 | RowFetcher / DynamicRowGrid(ScrollView+HStack) / CellView(NULL/INT/REAL/TEXT/BLOB 색상) / FileWatcherClient(DispatchSource, WAL/-shm 포함) / 상단 Toast |
-| **4. 시뮬레이터 앱 자동 탐색** | ⏳ 대기 | SimulatorClient(@DependencyClient) / SimulatorPickerFeature |
+| **4. 시뮬레이터 앱 자동 탐색** | ✅ 완료 | SimulatorScanner(simctl JSON + FS 글로빙) / SimulatorClient / SimulatorPickerFeature(DisclosureGroup 트리) / Welcome의 "시뮬레이터" 버튼(⌘L) + Welcome 드래그&드롭 |
 | **5. SwiftData 스토어 지원** | ⏳ 대기 | SwiftDataDetector(Z_METADATA) / Decoder / .store 확장자 |
 | **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist |
 | **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml (매크로 검증 스킵 플래그 포함) |
@@ -47,20 +47,21 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 
 ## 최근 검증 (2026-04-16)
 
-- **Phase 3 빌드/테스트**: 7/7 통과 (AppFeature 3 + BrowserFeature 4)
-- 샘플 DB `/tmp/storefront-sample.sqlite` — File > Open으로 행 데이터 + 라이브 리로드 검증 가능
-- 라이브 리로드 테스트: `sqlite3 /tmp/storefront-sample.sqlite "INSERT INTO artists VALUES (99, 'New Band')"` 실행 시 토스트 + 자동 갱신 확인
+- **Phase 4 빌드/테스트**: 10/10 통과 (AppFeature 3 + BrowserFeature 4 + SimulatorPicker 3)
+- 샘플 DB `/tmp/storefront-sample.sqlite` 또는 드래그&드롭으로 열기 가능
+- "시뮬레이터" 버튼(⌘L) → DisclosureGroup 트리에서 부팅된 시뮬 → 앱 → DB 원클릭 오픈
 
 ## 다음 작업 시작 지점
 
-**Phase 4 — 시뮬레이터 앱 자동 탐색 (TCA)**
+**Phase 5 — SwiftData 스토어 지원 (TCA)**
 
 파일 생성 순서:
-1. `Storefront/Dependencies/SimulatorClient.swift` — `xcrun simctl list devices --json` + `~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application/*/` 글로빙. Returns `[SimulatorDevice]` with nested apps/DBs. `Info.plist`의 `MCMMetadataIdentifier`로 번들ID 표시
-2. `Storefront/Features/SimulatorPicker/SimulatorPickerFeature.swift` — 디바이스/앱/DB 3단 리스트 State
-3. `Storefront/Features/SimulatorPicker/SimulatorPickerView.swift` — NavigationSplitView 또는 DisclosureGroup 트리
-4. `AppFeature` 또는 Welcome에 Simulator 섹션 통합 (사이드바 + "Simulators" 버튼)
-5. Tests: `SimulatorPickerFeatureTests` (mock JSON 파싱)
+1. `Storefront/Core/SwiftDataStore/SwiftDataDetector.swift` — `Z_METADATA`/`Z_PRIMARYKEY` 존재 여부로 판별
+2. `Storefront/Core/SwiftDataStore/SwiftDataDecoder.swift` — 테이블명에서 `Z_` 접두 제거, 컬럼명 정규화(`ZNAME` → `name`), `Z_` 메타 테이블은 별도 섹션
+3. `DatabaseClient.tables` 응답에 `isSwiftData` 플래그 또는 별도 SwiftData 경로 추가
+4. `SchemaInspector`에 Z_ 인식 로직 연동 — 사용자 표시명 정규화
+5. `AppFeature` `fileImported`에서 `.store` 확장자 감지 → Browser에 isSwiftData=true 전달
+6. Tests: `SwiftDataDetectorTests`, `SwiftDataDecoderTests`
 
 ## 저장소 상태
 
@@ -68,4 +69,4 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 3 완료 (행 뷰어 + 라이브 리로드)
+- Last commit on feat/mvp-v0.1.0: Phase 4 완료 (시뮬레이터 탐색 + 드래그&드롭)

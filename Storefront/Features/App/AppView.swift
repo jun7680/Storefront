@@ -25,6 +25,18 @@ struct AppView: View {
                 store.send(.fileImportFailed(error.localizedDescription))
             }
         }
+        .sheet(
+            isPresented: Binding(
+                get: { store.simulatorPicker != nil },
+                set: { new in
+                    if !new { store.send(.simulatorPicker(.dismissTapped)) }
+                }
+            )
+        ) {
+            if let pickerStore = store.scope(state: \.simulatorPicker, action: \.simulatorPicker) {
+                SimulatorPickerView(store: pickerStore)
+            }
+        }
     }
 
     private static let allowedContentTypes: [UTType] = {
@@ -44,23 +56,4 @@ struct AppView: View {
     )
     .frame(width: 900, height: 560)
     .preferredColorScheme(.light)
-}
-
-#Preview("Browser — Dark") {
-    AppView(
-        store: Store(
-            initialState: AppFeature.State(
-                browser: BrowserFeature.State(
-                    databaseURL: URL(fileURLWithPath: "/tmp/sample.sqlite"),
-                    tables: [
-                        TableInfo(name: "artists", kind: .table, rowCount: 275),
-                        TableInfo(name: "tracks", kind: .table, rowCount: 3_503)
-                    ],
-                    selectedTableID: "tracks"
-                )
-            )
-        ) { AppFeature() }
-    )
-    .frame(width: 900, height: 560)
-    .preferredColorScheme(.dark)
 }

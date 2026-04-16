@@ -27,17 +27,30 @@ struct WelcomeView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Button {
-                store.send(.openButtonTapped)
-            } label: {
-                Label("파일 열기", systemImage: "tray.and.arrow.down")
-                    .font(.headline)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
+            HStack(spacing: 12) {
+                Button {
+                    store.send(.openButtonTapped)
+                } label: {
+                    Label("파일 열기", systemImage: "tray.and.arrow.down")
+                        .font(.headline)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color("AppPrimary"))
+                .keyboardShortcut("o", modifiers: .command)
+
+                Button {
+                    store.send(.simulatorButtonTapped)
+                } label: {
+                    Label("시뮬레이터", systemImage: "iphone.gen3")
+                        .font(.headline)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.bordered)
+                .keyboardShortcut("l", modifiers: .command)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color("AppPrimary"))
-            .keyboardShortcut("o", modifiers: .command)
 
             Text("📦 .sqlite · .db · .store 파일을 끌어다 놓아보세요")
                 .font(.callout)
@@ -48,6 +61,11 @@ struct WelcomeView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(40)
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let url = urls.first else { return false }
+            store.send(.fileImported(url))
+            return true
+        }
     }
 }
 
