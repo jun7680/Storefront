@@ -36,7 +36,7 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 | **2. SQLite 파일 열기 + 테이블 리스트** | ✅ 완료 | BrowserFeature / DatabaseClient(actor registry) / SchemaInspector / NavigationSplitView 2-column + Tables/Views 섹션 + 행수 배지 |
 | **3. 행 뷰어 + 라이브 리로드** | ✅ 완료 | RowFetcher / DynamicRowGrid(ScrollView+HStack) / CellView(NULL/INT/REAL/TEXT/BLOB 색상) / FileWatcherClient(DispatchSource, WAL/-shm 포함) / 상단 Toast |
 | **4. 시뮬레이터 앱 자동 탐색** | ✅ 완료 | SimulatorScanner(simctl JSON + FS 글로빙) / SimulatorClient / SimulatorPickerFeature(DisclosureGroup 트리) / Welcome의 "시뮬레이터" 버튼(⌘L) + Welcome 드래그&드롭 |
-| **5. SwiftData 스토어 지원** | ⏳ 대기 | SwiftDataDetector(Z_METADATA) / Decoder / .store 확장자 |
+| **5. SwiftData 스토어 지원** | ✅ 완료 | SwiftDataDetector(Z_METADATA/Z_PRIMARYKEY 판별) + SwiftDataDecoder(Z 접두어 정규화) + TableInfo.Classification(swiftDataEntity/swiftDataSystem) + 사이드바 Entities/Tables/Views/System 섹션 분리 + 원본명 tooltip + DynamicRowGrid 전체 폭 flex-fill |
 | **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist |
 | **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml (매크로 검증 스킵 플래그 포함) |
 
@@ -47,21 +47,21 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 
 ## 최근 검증 (2026-04-16)
 
-- **Phase 4 빌드/테스트**: 10/10 통과 (AppFeature 3 + BrowserFeature 4 + SimulatorPicker 3)
-- 샘플 DB `/tmp/storefront-sample.sqlite` 또는 드래그&드롭으로 열기 가능
-- "시뮬레이터" 버튼(⌘L) → DisclosureGroup 트리에서 부팅된 시뮬 → 앱 → DB 원클릭 오픈
+- **Phase 5 빌드/테스트**: 13/13 통과 (AppFeature 3 + BrowserFeature 4 + SimulatorPicker 3 + SwiftDataDecoder 3)
+- DynamicRowGrid: GeometryReader 기반 flex/고정 폭 자동 전환 (컬럼수 × 140pt > 가용폭이면 horizontal scroll, 아니면 균등 분배)
+- LazyVStack + pinned section header로 상단 고정 (스크롤 시 헤더 유지)
 
 ## 다음 작업 시작 지점
 
-**Phase 5 — SwiftData 스토어 지원 (TCA)**
+**Phase 6 — DMG 빌드 파이프라인 (Makefile)**
 
 파일 생성 순서:
-1. `Storefront/Core/SwiftDataStore/SwiftDataDetector.swift` — `Z_METADATA`/`Z_PRIMARYKEY` 존재 여부로 판별
-2. `Storefront/Core/SwiftDataStore/SwiftDataDecoder.swift` — 테이블명에서 `Z_` 접두 제거, 컬럼명 정규화(`ZNAME` → `name`), `Z_` 메타 테이블은 별도 섹션
-3. `DatabaseClient.tables` 응답에 `isSwiftData` 플래그 또는 별도 SwiftData 경로 추가
-4. `SchemaInspector`에 Z_ 인식 로직 연동 — 사용자 표시명 정규화
-5. `AppFeature` `fileImported`에서 `.store` 확장자 감지 → Browser에 isSwiftData=true 전달
-6. Tests: `SwiftDataDetectorTests`, `SwiftDataDecoderTests`
+1. `scripts/ExportOptions.plist` — method=mac-application, signing=manual, certificate 없음
+2. `scripts/build.sh` — `xcodebuild archive` + `xcodebuild -exportArchive` (ad-hoc 서명 `codesign --sign -`)
+3. `scripts/make-dmg.sh` — `create-dmg` (Applications 심볼릭 링크 포함) 또는 `hdiutil create -format UDZO`
+4. `scripts/make-icon.sh` — SF Symbol → 1024 PNG → sips로 전 해상도 산출
+5. `Makefile` — build/test/archive/dmg/clean/icon 타겟. 필수 flag: `-skipMacroValidation -skipPackagePluginValidation`
+6. 로컬 `make dmg` 검증 — `build/Storefront.dmg` 생성 + Applications 드롭존 확인
 
 ## 저장소 상태
 
@@ -69,4 +69,4 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 4 완료 (시뮬레이터 탐색 + 드래그&드롭)
+- Last commit on feat/mvp-v0.1.0: Phase 5 완료 (SwiftData 지원 + 그리드 flex 레이아웃)

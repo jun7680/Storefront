@@ -3,22 +3,30 @@ import SwiftUI
 struct DynamicRowGrid: View {
     let page: RowPage
 
-    private static let minColumnWidth: CGFloat = 120
+    private static let minColumnWidth: CGFloat = 140
 
     var body: some View {
-        ScrollView([.horizontal, .vertical]) {
-            VStack(spacing: 0) {
-                header
-                Divider()
-                ForEach(Array(page.rows.enumerated()), id: \.element.id) { idx, row in
-                    rowView(row: row, zebra: idx.isMultiple(of: 2))
-                    Divider().opacity(0.3)
+        GeometryReader { geo in
+            let columnCount = max(1, page.columns.count)
+            let flexWidth = geo.size.width / CGFloat(columnCount)
+            let columnWidth = max(Self.minColumnWidth, flexWidth)
+            let totalWidth = columnWidth * CGFloat(columnCount)
+
+            ScrollView([.vertical, .horizontal]) {
+                LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section(header: header(columnWidth: columnWidth, totalWidth: totalWidth)) {
+                        ForEach(Array(page.rows.enumerated()), id: \.element.id) { idx, row in
+                            rowView(row: row, zebra: idx.isMultiple(of: 2), columnWidth: columnWidth, totalWidth: totalWidth)
+                            Divider().opacity(0.25)
+                        }
+                    }
                 }
+                .frame(minWidth: geo.size.width, alignment: .leading)
             }
         }
     }
 
-    private var header: some View {
+    private func header(columnWidth: CGFloat, totalWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(page.columns) { column in
                 HStack(spacing: 4) {
@@ -27,8 +35,17 @@ struct DynamicRowGrid: View {
                             .font(.caption2)
                             .foregroundStyle(Color("AppPrimary"))
                     }
-                    Text(column.name)
-                        .font(.system(.subheadline, design: .default).weight(.semibold))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(column.displayName)
+                            .font(.system(.subheadline, design: .default).weight(.semibold))
+                            .lineLimit(1)
+                        if column.displayName != column.name {
+                            Text(column.name)
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(.tertiary)
+                                .lineLimit(1)
+                        }
+                    }
                     if !column.declaredType.isEmpty {
                         Text(column.declaredType)
                             .font(.caption2)
@@ -38,22 +55,35 @@ struct DynamicRowGrid: View {
                 }
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .frame(minWidth: Self.minColumnWidth, alignment: .leading)
+                .frame(width: columnWidth, alignment: .leading)
+
+                if column.id != page.columns.last?.id {
+                    Divider()
+                }
             }
         }
-        .background(Color.secondary.opacity(0.08))
+        .frame(width: totalWidth, alignment: .leading)
+        .background(.regularMaterial)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
     }
 
-    private func rowView(row: RowSnapshot, zebra: Bool) -> some View {
+    private func rowView(row: RowSnapshot, zebra: Bool, columnWidth: CGFloat, totalWidth: CGFloat) -> some View {
         HStack(spacing: 0) {
             ForEach(Array(page.columns.enumerated()), id: \.element.id) { idx, column in
                 let value = idx < row.values.count ? row.values[idx] : .null
                 CellView(value: value)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .frame(minWidth: Self.minColumnWidth, alignment: columnAlignment(for: value))
+                    .frame(width: columnWidth, alignment: columnAlignment(for: value))
+
+                if column.id != page.columns.last?.id {
+                    Divider().opacity(0.3)
+                }
             }
         }
+        .frame(width: totalWidth, alignment: .leading)
         .background(zebra ? Color.secondary.opacity(0.04) : Color.clear)
     }
 

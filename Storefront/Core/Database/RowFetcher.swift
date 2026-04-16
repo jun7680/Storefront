@@ -6,8 +6,13 @@ struct ColumnInfo: Equatable, Identifiable, Sendable {
     let declaredType: String
     let isPrimaryKey: Bool
     let isNotNull: Bool
+    let isSwiftDataEntity: Bool
 
     var id: String { name }
+
+    var displayName: String {
+        isSwiftDataEntity ? SwiftDataDecoder.normalize(columnName: name) : name
+    }
 }
 
 enum DBValue: Equatable, Sendable, Hashable {
@@ -48,7 +53,7 @@ struct RowPage: Equatable, Sendable {
 }
 
 enum RowFetcher {
-    static func columns(_ db: Database, table: String) throws -> [ColumnInfo] {
+    static func columns(_ db: Database, table: String, isSwiftDataEntity: Bool = false) throws -> [ColumnInfo] {
         let escaped = table.replacingOccurrences(of: "\"", with: "\"\"")
         let rows = try Row.fetchAll(db, sql: "PRAGMA table_info(\"\(escaped)\")")
         return rows.map { row in
@@ -56,13 +61,14 @@ enum RowFetcher {
                 name: row["name"],
                 declaredType: (row["type"] as String?) ?? "",
                 isPrimaryKey: ((row["pk"] as Int?) ?? 0) > 0,
-                isNotNull: ((row["notnull"] as Int?) ?? 0) != 0
+                isNotNull: ((row["notnull"] as Int?) ?? 0) != 0,
+                isSwiftDataEntity: isSwiftDataEntity
             )
         }
     }
 
-    static func page(_ db: Database, table: String, offset: Int, limit: Int) throws -> RowPage {
-        let columns = try columns(db, table: table)
+    static func page(_ db: Database, table: String, offset: Int, limit: Int, isSwiftDataEntity: Bool = false) throws -> RowPage {
+        let columns = try columns(db, table: table, isSwiftDataEntity: isSwiftDataEntity)
         let escaped = table.replacingOccurrences(of: "\"", with: "\"\"")
 
         let total = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM \"\(escaped)\"") ?? 0

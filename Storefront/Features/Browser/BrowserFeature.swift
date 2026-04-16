@@ -6,6 +6,7 @@ struct BrowserFeature {
     @ObservableState
     struct State: Equatable {
         let databaseURL: URL
+        var databaseKind: DatabaseKind = .standard
         var tables: [TableInfo] = []
         var selectedTableID: TableInfo.ID?
         var isLoading: Bool = false
@@ -22,8 +23,8 @@ struct BrowserFeature {
         case onAppear
         case onDisappear
         case refreshRequested
-        case tablesLoaded([TableInfo])
-        case tablesFailedToLoad(String)
+        case schemaLoaded(DatabaseSchema)
+        case schemaFailedToLoad(String)
         case tableSelected(TableInfo.ID?)
         case rowsLoaded(RowPage)
         case rowsFailedToLoad(String)
@@ -48,7 +49,7 @@ struct BrowserFeature {
                 state.loadErrorMessage = nil
                 let url = state.databaseURL
                 return .merge(
-                    loadTables(url: url),
+                    loadSchema(url: url),
                     .run { send in
                         for await _ in fileWatcher.changes(url) {
                             await send(.fileChanged)
@@ -64,30 +65,33 @@ struct BrowserFeature {
                 state.isLoading = true
                 state.loadErrorMessage = nil
                 let url = state.databaseURL
-                let selected = state.selectedTableID
+                let selected = resolveSelectedTable(in: state)
                 return .merge(
-                    loadTables(url: url),
-                    selected.map { loadRows(url: url, table: $0) } ?? .none
+                    loadSchema(url: url),
+                    selected.map { loadRows(url: url, table: $0.name, isEntity: $0.classification == .swiftDataEntity) } ?? .none
                 )
 
-            case let .tablesLoaded(tables):
-                state.tables = tables
+            case let .schemaLoaded(schema):
+                state.tables = schema.tables
+                state.databaseKind = schema.kind
                 state.isLoading = false
-                let autoSelected: String?
-                if let current = state.selectedTableID, tables.contains(where: { $0.id == current }) {
-                    autoSelected = current
+                let autoSelectedID: String?
+                if let current = state.selectedTableID, schema.tables.contains(where: { $0.id == current }) {
+                    autoSelectedID = current
                 } else {
-                    autoSelected = tables.first?.id
+                    // Prefer non-system tables on SwiftData stores
+                    autoSelectedID = schema.tables.first(where: { $0.classification != .swiftDataSystem })?.id
+                        ?? schema.tables.first?.id
                 }
-                state.selectedTableID = autoSelected
-                if let table = autoSelected {
+                state.selectedTableID = autoSelectedID
+                if let id = autoSelectedID, let table = schema.tables.first(where: { $0.id == id }) {
                     state.isLoadingRows = true
                     state.rowLoadError = nil
-                    return loadRows(url: state.databaseURL, table: table)
+                    return loadRows(url: state.databaseURL, table: table.name, isEntity: table.classification == .swiftDataEntity)
                 }
                 return .none
 
-            case let .tablesFailedToLoad(message):
+            case let .schemaFailedToLoad(message):
                 state.loadErrorMessage = message
                 state.isLoading = false
                 return .none
@@ -96,9 +100,9 @@ struct BrowserFeature {
                 state.selectedTableID = id
                 state.currentPage = nil
                 state.rowLoadError = nil
-                guard let id else { return .none }
+                guard let id, let table = state.tables.first(where: { $0.id == id }) else { return .none }
                 state.isLoadingRows = true
-                return loadRows(url: state.databaseURL, table: id)
+                return loadRows(url: state.databaseURL, table: table.name, isEntity: table.classification == .swiftDataEntity)
 
             case let .rowsLoaded(page):
                 state.currentPage = page
@@ -114,30 +118,35 @@ struct BrowserFeature {
             case .fileChanged:
                 state.liveReloadToast &+= 1
                 let url = state.databaseURL
-                let selected = state.selectedTableID
+                let selected = resolveSelectedTable(in: state)
                 return .merge(
-                    loadTables(url: url),
-                    selected.map { loadRows(url: url, table: $0) } ?? .none
+                    loadSchema(url: url),
+                    selected.map { loadRows(url: url, table: $0.name, isEntity: $0.classification == .swiftDataEntity) } ?? .none
                 )
             }
         }
     }
 
-    private func loadTables(url: URL) -> Effect<Action> {
+    private func resolveSelectedTable(in state: State) -> TableInfo? {
+        guard let id = state.selectedTableID else { return nil }
+        return state.tables.first { $0.id == id }
+    }
+
+    private func loadSchema(url: URL) -> Effect<Action> {
         .run { send in
             do {
-                let tables = try await database.tables(url)
-                await send(.tablesLoaded(tables))
+                let schema = try await database.inspect(url)
+                await send(.schemaLoaded(schema))
             } catch {
-                await send(.tablesFailedToLoad(error.localizedDescription))
+                await send(.schemaFailedToLoad(error.localizedDescription))
             }
         }
     }
 
-    private func loadRows(url: URL, table: String) -> Effect<Action> {
+    private func loadRows(url: URL, table: String, isEntity: Bool) -> Effect<Action> {
         .run { [pageSize] send in
             do {
-                let page = try await database.page(url, table, 0, pageSize)
+                let page = try await database.page(url, table, 0, pageSize, isEntity)
                 await send(.rowsLoaded(page))
             } catch {
                 await send(.rowsFailedToLoad(error.localizedDescription))

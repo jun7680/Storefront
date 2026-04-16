@@ -48,17 +48,33 @@ struct BrowserView: View {
     }
 
     private var tableList: some View {
-        let tables = store.tables.filter { $0.kind == .table }
+        let entities = store.tables.filter { $0.classification == .swiftDataEntity }
+        let standardTables = store.tables.filter { $0.kind == .table && $0.classification == .standard }
         let views = store.tables.filter { $0.kind == .view }
+        let systemTables = store.tables.filter { $0.classification == .swiftDataSystem }
         let selection = Binding(
             get: { store.selectedTableID },
             set: { store.send(.tableSelected($0)) }
         )
 
         return List(selection: selection) {
-            if !tables.isEmpty {
+            if store.databaseKind == .swiftData {
+                Label("SwiftData Store", systemImage: "leaf.fill")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color("AppAccent"))
+                    .listRowSeparator(.hidden)
+                    .padding(.bottom, 4)
+            }
+            if !entities.isEmpty {
+                Section("Entities") {
+                    ForEach(entities) { table in
+                        TableRow(table: table).tag(Optional(table.id))
+                    }
+                }
+            }
+            if !standardTables.isEmpty {
                 Section("Tables") {
-                    ForEach(tables) { table in
+                    ForEach(standardTables) { table in
                         TableRow(table: table).tag(Optional(table.id))
                     }
                 }
@@ -66,6 +82,13 @@ struct BrowserView: View {
             if !views.isEmpty {
                 Section("Views") {
                     ForEach(views) { table in
+                        TableRow(table: table).tag(Optional(table.id))
+                    }
+                }
+            }
+            if !systemTables.isEmpty {
+                Section("System") {
+                    ForEach(systemTables) { table in
                         TableRow(table: table).tag(Optional(table.id))
                     }
                 }
@@ -102,9 +125,15 @@ struct BrowserView: View {
     }
 
     private func detailToolbar(page: RowPage) -> some View {
-        HStack(spacing: 12) {
-            Text(store.selectedTableID ?? "")
+        let selectedTable = store.tables.first { $0.id == store.selectedTableID }
+        return HStack(spacing: 12) {
+            Text(selectedTable?.displayName ?? store.selectedTableID ?? "")
                 .font(.headline)
+            if let t = selectedTable, t.displayName != t.name {
+                Text(t.name)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.tertiary)
+            }
             Text("\(page.totalRows.formatted()) rows · \(page.columns.count) columns")
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
@@ -161,11 +190,30 @@ struct BrowserView: View {
 private struct TableRow: View {
     let table: TableInfo
 
+    private var iconName: String {
+        switch table.classification {
+        case .swiftDataEntity: return "leaf"
+        case .swiftDataSystem: return "gear"
+        case .standard: return table.kind == .view ? "eye" : "tablecells"
+        }
+    }
+
     var body: some View {
         HStack {
-            Image(systemName: table.kind == .view ? "eye" : "tablecells")
-                .foregroundStyle(Color("AppPrimary"))
-            Text(table.name)
+            Image(systemName: iconName)
+                .foregroundStyle(
+                    table.classification == .swiftDataEntity
+                        ? Color("AppAccent")
+                        : Color("AppPrimary")
+                )
+            VStack(alignment: .leading, spacing: 1) {
+                Text(table.displayName)
+                if table.displayName != table.name {
+                    Text(table.name)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.tertiary)
+                }
+            }
             Spacer()
             Text("\(table.rowCount.formatted())")
                 .font(.caption.monospacedDigit())
