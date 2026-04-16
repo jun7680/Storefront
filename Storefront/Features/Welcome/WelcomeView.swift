@@ -1,0 +1,57 @@
+import SwiftUI
+
+struct WelcomeView: View {
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "storefront.fill")
+                .font(.system(size: 72, weight: .regular))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [Color("AppPrimary"), Color("AppAccent")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .padding(.bottom, 4)
+
+            VStack(spacing: 6) {
+                Text("Storefront")
+                    .font(.system(size: 32, weight: .semibold, design: .rounded))
+                Text("SQLite · SwiftData 뷰어")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+            }
+
+            Button {
+                appState.openFileRequested = true
+            } label: {
+                Label("파일 열기", systemImage: "tray.and.arrow.down")
+                    .font(.headline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color("AppPrimary"))
+            .keyboardShortcut("o", modifiers: .command)
+
+            Text("📦 .sqlite · .db · .store 파일을 끌어다 놓아보세요")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(40)
+    }
+}
+
+#Preview {
+    WelcomeView()
+        .environment(AppState())
+        .frame(width: 900, height: 560)
+}
