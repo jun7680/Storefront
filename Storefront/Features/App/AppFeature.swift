@@ -5,16 +5,18 @@ import Foundation
 struct AppFeature {
     @ObservableState
     struct State: Equatable {
-        var currentDocumentURL: URL?
         var isFileImporterPresented: Bool = false
+        var browser: BrowserFeature.State?
     }
 
     enum Action: BindableAction {
         case binding(BindingAction<State>)
         case openButtonTapped
         case reloadMenuSelected
-        case fileImported(Result<URL, Error>)
+        case fileImported(URL)
+        case fileImportFailed(String)
         case closeDocument
+        case browser(BrowserFeature.Action)
     }
 
     var body: some ReducerOf<Self> {
@@ -30,22 +32,28 @@ struct AppFeature {
                 return .none
 
             case .reloadMenuSelected:
-                // Phase 3에서 FileWatcher와 연결
-                return .none
+                guard state.browser != nil else { return .none }
+                return .send(.browser(.refreshRequested))
 
-            case let .fileImported(.success(url)):
-                state.currentDocumentURL = url
+            case let .fileImported(url):
                 state.isFileImporterPresented = false
+                state.browser = BrowserFeature.State(databaseURL: url)
                 return .none
 
-            case .fileImported(.failure):
+            case .fileImportFailed:
                 state.isFileImporterPresented = false
                 return .none
 
             case .closeDocument:
-                state.currentDocumentURL = nil
+                state.browser = nil
+                return .none
+
+            case .browser:
                 return .none
             }
+        }
+        .ifLet(\.browser, action: \.browser) {
+            BrowserFeature()
         }
     }
 }

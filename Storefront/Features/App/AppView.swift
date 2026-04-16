@@ -7,36 +7,38 @@ struct AppView: View {
 
     var body: some View {
         Group {
-            if store.currentDocumentURL == nil {
-                WelcomeView(store: store)
+            if let browserStore = store.scope(state: \.browser, action: \.browser) {
+                BrowserView(store: browserStore)
             } else {
-                ContentUnavailableView(
-                    "Phase 2에서 구현됩니다",
-                    systemImage: "tray",
-                    description: Text("SQLite 뷰어는 다음 단계 작업입니다.")
-                )
+                WelcomeView(store: store)
             }
         }
         .background(Color("AppBackground"))
         .fileImporter(
             isPresented: $store.isFileImporterPresented,
-            allowedContentTypes: Self.allowedContentTypes,
-            onCompletion: { result in
-                store.send(.fileImported(result))
+            allowedContentTypes: Self.allowedContentTypes
+        ) { result in
+            switch result {
+            case let .success(url):
+                store.send(.fileImported(url))
+            case let .failure(error):
+                store.send(.fileImportFailed(error.localizedDescription))
             }
-        )
+        }
     }
 
-    private static let allowedContentTypes: [UTType] = [
-        .database,
-        UTType(filenameExtension: "sqlite") ?? .data,
-        UTType(filenameExtension: "sqlite3") ?? .data,
-        UTType(filenameExtension: "db") ?? .data,
-        UTType(filenameExtension: "store") ?? .data
-    ]
+    private static let allowedContentTypes: [UTType] = {
+        var types: [UTType] = [.database]
+        for ext in ["sqlite", "sqlite3", "db", "store"] {
+            if let type = UTType(filenameExtension: ext) {
+                types.append(type)
+            }
+        }
+        return types
+    }()
 }
 
-#Preview("Light") {
+#Preview("Welcome — Light") {
     AppView(
         store: Store(initialState: AppFeature.State()) { AppFeature() }
     )
@@ -44,9 +46,20 @@ struct AppView: View {
     .preferredColorScheme(.light)
 }
 
-#Preview("Dark") {
+#Preview("Browser — Dark") {
     AppView(
-        store: Store(initialState: AppFeature.State()) { AppFeature() }
+        store: Store(
+            initialState: AppFeature.State(
+                browser: BrowserFeature.State(
+                    databaseURL: URL(fileURLWithPath: "/tmp/sample.sqlite"),
+                    tables: [
+                        TableInfo(name: "artists", kind: .table, rowCount: 275),
+                        TableInfo(name: "tracks", kind: .table, rowCount: 3_503)
+                    ],
+                    selectedTableID: "tracks"
+                )
+            )
+        ) { AppFeature() }
     )
     .frame(width: 900, height: 560)
     .preferredColorScheme(.dark)
