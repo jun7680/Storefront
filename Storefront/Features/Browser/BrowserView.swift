@@ -3,6 +3,7 @@ import SwiftUI
 
 struct BrowserView: View {
     @Bindable var store: StoreOf<BrowserFeature>
+    @State private var showReloadToast: Bool = false
 
     var body: some View {
         NavigationSplitView {
@@ -10,9 +11,15 @@ struct BrowserView: View {
                 .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 360)
         } detail: {
             detail
+                .overlay(alignment: .top) { reloadToast }
         }
         .navigationTitle(store.databaseURL.lastPathComponent)
-        .task { store.send(.onAppear) }
+        .task {
+            store.send(.onAppear)
+        }
+        .onChange(of: store.liveReloadToast) { _, _ in
+            triggerToast()
+        }
     }
 
     @ViewBuilder
@@ -69,26 +76,84 @@ struct BrowserView: View {
 
     @ViewBuilder
     private var detail: some View {
-        if
-            let id = store.selectedTableID,
-            let table = store.tables.first(where: { $0.id == id })
-        {
-            ContentUnavailableView {
-                Label(table.name, systemImage: table.kind == .view ? "eye" : "tablecells")
-            } description: {
-                Text("\(table.rowCount.formatted()) rows")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                Text("행 뷰어는 Phase 3에서 구현됩니다.")
-                    .font(.footnote)
-                    .foregroundStyle(.tertiary)
+        if let page = store.currentPage {
+            VStack(spacing: 0) {
+                detailToolbar(page: page)
+                Divider()
+                DynamicRowGrid(page: page)
+                    .background(Color("AppBackground"))
             }
+        } else if store.isLoadingRows {
+            ProgressView("행 로딩 중…")
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let error = store.rowLoadError {
+            ContentUnavailableView(
+                "행을 읽을 수 없음",
+                systemImage: "exclamationmark.triangle.fill",
+                description: Text(error)
+            )
         } else {
             ContentUnavailableView(
                 "테이블 선택",
                 systemImage: "sidebar.left",
                 description: Text("왼쪽 사이드바에서 테이블을 선택하세요.")
             )
+        }
+    }
+
+    private func detailToolbar(page: RowPage) -> some View {
+        HStack(spacing: 12) {
+            Text(store.selectedTableID ?? "")
+                .font(.headline)
+            Text("\(page.totalRows.formatted()) rows · \(page.columns.count) columns")
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+            if page.totalRows > page.rows.count {
+                Text("첫 \(page.rows.count.formatted())개 표시 중")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.12))
+                    .clipShape(Capsule())
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color("AppBackground"))
+    }
+
+    @ViewBuilder
+    private var reloadToast: some View {
+        if showReloadToast {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                Text("변경 감지됨 — 자동 새로고침")
+                    .font(.callout)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color("AppAccent").opacity(0.5), lineWidth: 1))
+            .shadow(radius: 6)
+            .padding(.top, 14)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+            .zIndex(10)
+        }
+    }
+
+    private func triggerToast() {
+        withAnimation(.easeOut(duration: 0.2)) {
+            showReloadToast = true
+        }
+        Task {
+            try? await Task.sleep(nanoseconds: 1_800_000_000)
+            await MainActor.run {
+                withAnimation(.easeIn(duration: 0.25)) {
+                    showReloadToast = false
+                }
+            }
         }
     }
 }
@@ -111,24 +176,4 @@ private struct TableRow: View {
                 .clipShape(Capsule())
         }
     }
-}
-
-#Preview {
-    BrowserView(
-        store: Store(
-            initialState: BrowserFeature.State(
-                databaseURL: URL(fileURLWithPath: "/tmp/sample.sqlite"),
-                tables: [
-                    TableInfo(name: "artists", kind: .table, rowCount: 275),
-                    TableInfo(name: "albums", kind: .table, rowCount: 347),
-                    TableInfo(name: "tracks", kind: .table, rowCount: 3_503),
-                    TableInfo(name: "invoice_summary", kind: .view, rowCount: 412)
-                ],
-                selectedTableID: "tracks"
-            )
-        ) {
-            BrowserFeature()
-        }
-    )
-    .frame(width: 900, height: 560)
 }

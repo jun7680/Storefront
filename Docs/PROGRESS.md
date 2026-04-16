@@ -34,7 +34,7 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 | **초기 문서 · 라이선스 · Asset** | ✅ 완료 | LICENSE(MIT), README, Sky/Orange 컬러 |
 | **TCA 리팩터** | ✅ 완료 | AppFeature(@Reducer, @ObservableState) / AppView / WelcomeView(StoreOf<AppFeature>) / TestStore 3건 통과 |
 | **2. SQLite 파일 열기 + 테이블 리스트** | ✅ 완료 | BrowserFeature / DatabaseClient(actor registry) / SchemaInspector / NavigationSplitView 2-column + Tables/Views 섹션 + 행수 배지 |
-| **3. 행 뷰어 + 라이브 리로드** | ⏳ 대기 | RowFetcher / dynamic Table / CellView / FileWatcherClient(@Dependency) / Toast |
+| **3. 행 뷰어 + 라이브 리로드** | ✅ 완료 | RowFetcher / DynamicRowGrid(ScrollView+HStack) / CellView(NULL/INT/REAL/TEXT/BLOB 색상) / FileWatcherClient(DispatchSource, WAL/-shm 포함) / 상단 Toast |
 | **4. 시뮬레이터 앱 자동 탐색** | ⏳ 대기 | SimulatorClient(@DependencyClient) / SimulatorPickerFeature |
 | **5. SwiftData 스토어 지원** | ⏳ 대기 | SwiftDataDetector(Z_METADATA) / Decoder / .store 확장자 |
 | **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist |
@@ -47,22 +47,20 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 
 ## 최근 검증 (2026-04-16)
 
-- **Phase 2 빌드/테스트**: `xcodebuild … test` → 6/6 통과 (AppFeature 3 + BrowserFeature 3)
-- 샘플 DB `/tmp/storefront-sample.sqlite` (artists/albums/tracks + track_summary view) 생성됨 — 앱에서 File > Open으로 검증 가능
+- **Phase 3 빌드/테스트**: 7/7 통과 (AppFeature 3 + BrowserFeature 4)
+- 샘플 DB `/tmp/storefront-sample.sqlite` — File > Open으로 행 데이터 + 라이브 리로드 검증 가능
+- 라이브 리로드 테스트: `sqlite3 /tmp/storefront-sample.sqlite "INSERT INTO artists VALUES (99, 'New Band')"` 실행 시 토스트 + 자동 갱신 확인
 
 ## 다음 작업 시작 지점
 
-**Phase 3 — 행 뷰어 + 라이브 리로드 (TCA)**
+**Phase 4 — 시뮬레이터 앱 자동 탐색 (TCA)**
 
 파일 생성 순서:
-1. `Storefront/Core/Database/RowFetcher.swift` — 페이지네이션 행 조회 (OFFSET/LIMIT 또는 keyset)
-2. `Storefront/Dependencies/DatabaseClient.swift` 확장 — `columns(URL, table)`, `rows(URL, table, offset, limit)`
-3. `Storefront/Dependencies/FileWatcherClient.swift` — `DispatchSource.makeFileSystemObjectSource` 래퍼. `watch(URL) -> AsyncStream<Void>`
-4. `Storefront/Features/Browser/RowTableView.swift` — dynamic `Table(of:selection:sortOrder:)` + `TableColumn`
-5. `Storefront/UI/CellView.swift` — NULL/BLOB/Date/Number/Text 타입별 색상
-6. `BrowserFeature` 확장 — `.columnsLoaded`, `.rowsLoaded`, `.fileChanged` 액션 + Effect 합성
-7. `BrowserView` 우측 detail에 `RowTableView` 연결, 라이브 리로드 토스트
-8. Tests: `BrowserFeatureRowsTests`, `FileWatcherClientTests`
+1. `Storefront/Dependencies/SimulatorClient.swift` — `xcrun simctl list devices --json` + `~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application/*/` 글로빙. Returns `[SimulatorDevice]` with nested apps/DBs. `Info.plist`의 `MCMMetadataIdentifier`로 번들ID 표시
+2. `Storefront/Features/SimulatorPicker/SimulatorPickerFeature.swift` — 디바이스/앱/DB 3단 리스트 State
+3. `Storefront/Features/SimulatorPicker/SimulatorPickerView.swift` — NavigationSplitView 또는 DisclosureGroup 트리
+4. `AppFeature` 또는 Welcome에 Simulator 섹션 통합 (사이드바 + "Simulators" 버튼)
+5. Tests: `SimulatorPickerFeatureTests` (mock JSON 파싱)
 
 ## 저장소 상태
 
@@ -70,4 +68,4 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 2 완료 (SQLite 뷰어 + 테이블 리스트)
+- Last commit on feat/mvp-v0.1.0: Phase 3 완료 (행 뷰어 + 라이브 리로드)
