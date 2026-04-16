@@ -37,7 +37,7 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 | **3. 행 뷰어 + 라이브 리로드** | ✅ 완료 | RowFetcher / DynamicRowGrid(ScrollView+HStack) / CellView(NULL/INT/REAL/TEXT/BLOB 색상) / FileWatcherClient(DispatchSource, WAL/-shm 포함) / 상단 Toast |
 | **4. 시뮬레이터 앱 자동 탐색** | ✅ 완료 | SimulatorScanner(simctl JSON + FS 글로빙) / SimulatorClient / SimulatorPickerFeature(DisclosureGroup 트리) / Welcome의 "시뮬레이터" 버튼(⌘L) + Welcome 드래그&드롭 |
 | **5. SwiftData 스토어 지원** | ✅ 완료 | SwiftDataDetector(Z_METADATA/Z_PRIMARYKEY 판별) + SwiftDataDecoder(Z 접두어 정규화) + TableInfo.Classification(swiftDataEntity/swiftDataSystem) + 사이드바 Entities/Tables/Views/System 섹션 분리 + 원본명 tooltip + DynamicRowGrid 전체 폭 flex-fill |
-| **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist |
+| **6. DMG 빌드 파이프라인** | ✅ 완료 | Makefile(setup/generate/build/test/archive/dmg/icon/clean) + scripts/build.sh (xcodebuild archive + exportArchive + ad-hoc codesign) + scripts/make-dmg.sh (create-dmg 우선, hdiutil fallback) + scripts/make-icon.sh (sips로 전 해상도) + scripts/ExportOptions.plist. `make dmg` → build/Storefront-0.1.0.dmg 4.8MB 생성 검증됨 |
 | **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml (매크로 검증 스킵 플래그 포함) |
 
 ## 설계 참조
@@ -53,15 +53,13 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 
 ## 다음 작업 시작 지점
 
-**Phase 6 — DMG 빌드 파이프라인 (Makefile)**
+**Phase 7 — GitHub Actions 릴리스**
 
 파일 생성 순서:
-1. `scripts/ExportOptions.plist` — method=mac-application, signing=manual, certificate 없음
-2. `scripts/build.sh` — `xcodebuild archive` + `xcodebuild -exportArchive` (ad-hoc 서명 `codesign --sign -`)
-3. `scripts/make-dmg.sh` — `create-dmg` (Applications 심볼릭 링크 포함) 또는 `hdiutil create -format UDZO`
-4. `scripts/make-icon.sh` — SF Symbol → 1024 PNG → sips로 전 해상도 산출
-5. `Makefile` — build/test/archive/dmg/clean/icon 타겟. 필수 flag: `-skipMacroValidation -skipPackagePluginValidation`
-6. 로컬 `make dmg` 검증 — `build/Storefront.dmg` 생성 + Applications 드롭존 확인
+1. `.github/workflows/build.yml` — PR/push 시 macos-latest runner에서 `xcodegen generate` + `make test` + `make build`. `-skipMacroValidation` 필수
+2. `.github/workflows/release.yml` — `on: push: tags: ['v*']` 에 트리거, `make dmg` → `softprops/action-gh-release@v2`로 `.dmg` Release 업로드, 태그 메시지를 release notes로
+3. `.github/ISSUE_TEMPLATE/bug_report.yml` — 간단한 버그 리포트 템플릿
+4. 로컬에서 `git tag v0.1.0-rc1 && git push origin v0.1.0-rc1` → Actions 로그 확인 → Release에 DMG 업로드 검증
 
 ## 저장소 상태
 
@@ -69,4 +67,4 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 5 완료 (SwiftData 지원 + 그리드 flex 레이아웃)
+- Last commit on feat/mvp-v0.1.0: Phase 6 완료 (DMG 파이프라인) + 그리드 topLeading 고정 / 전체 좌측 정렬

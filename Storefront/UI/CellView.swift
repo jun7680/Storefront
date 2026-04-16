@@ -15,14 +15,12 @@ struct CellView: View {
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(Color.blue)
                 .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .trailing)
 
         case let .double(v):
             Text(String(v))
                 .font(.system(.body, design: .monospaced))
                 .foregroundStyle(Color.blue)
                 .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .trailing)
 
         case let .text(v):
             Text(v)

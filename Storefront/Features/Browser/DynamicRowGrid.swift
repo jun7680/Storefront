@@ -14,15 +14,19 @@ struct DynamicRowGrid: View {
 
             ScrollView([.vertical, .horizontal]) {
                 LazyVStack(spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    Section(header: header(columnWidth: columnWidth, totalWidth: totalWidth)) {
+                    Section {
                         ForEach(Array(page.rows.enumerated()), id: \.element.id) { idx, row in
                             rowView(row: row, zebra: idx.isMultiple(of: 2), columnWidth: columnWidth, totalWidth: totalWidth)
                             Divider().opacity(0.25)
                         }
+                    } header: {
+                        header(columnWidth: columnWidth, totalWidth: totalWidth)
                     }
                 }
-                .frame(minWidth: geo.size.width, alignment: .leading)
+                .frame(minWidth: geo.size.width, alignment: .topLeading)
+                .frame(maxHeight: .infinity, alignment: .top)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 
@@ -73,10 +77,13 @@ struct DynamicRowGrid: View {
         HStack(spacing: 0) {
             ForEach(Array(page.columns.enumerated()), id: \.element.id) { idx, column in
                 let value = idx < row.values.count ? row.values[idx] : .null
-                CellView(value: value)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .frame(width: columnWidth, alignment: columnAlignment(for: value))
+                HStack {
+                    CellView(value: value)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .frame(width: columnWidth, alignment: .leading)
 
                 if column.id != page.columns.last?.id {
                     Divider().opacity(0.3)
@@ -85,12 +92,5 @@ struct DynamicRowGrid: View {
         }
         .frame(width: totalWidth, alignment: .leading)
         .background(zebra ? Color.secondary.opacity(0.04) : Color.clear)
-    }
-
-    private func columnAlignment(for value: DBValue) -> Alignment {
-        switch value {
-        case .integer, .double: return .trailing
-        default: return .leading
-        }
     }
 }
