@@ -33,16 +33,26 @@ Storefront/
 │   ├── App/
 │   │   ├── StorefrontApp.swift     # @main, Scene, Commands(File>Open/Reload)
 │   │   └── AppState.swift          # @Observable 루트 상태
-│   ├── Features/
-│   │   ├── Welcome/WelcomeView.swift         # 드래그-드롭 + 최근 파일
+│   ├── Features/                   # TCA 피처 (각 @Reducer + View)
+│   │   ├── App/
+│   │   │   ├── AppFeature.swift              # 루트 @Reducer (자식 피처 합성)
+│   │   │   └── AppView.swift
+│   │   ├── Welcome/
+│   │   │   ├── WelcomeFeature.swift          # @Reducer (openButtonTapped 등)
+│   │   │   └── WelcomeView.swift
 │   │   ├── Browser/
+│   │   │   ├── BrowserFeature.swift          # @Reducer + TableList/RowTable 자식
 │   │   │   ├── BrowserView.swift             # NavigationSplitView 3-column
 │   │   │   ├── TableListView.swift
-│   │   │   ├── RowTableView.swift            # dynamic Table API
-│   │   │   └── BrowserViewModel.swift        # @Observable
+│   │   │   └── RowTableView.swift            # dynamic Table API
 │   │   └── SimulatorPicker/
-│   │       ├── SimulatorPickerView.swift
-│   │       └── SimulatorPickerViewModel.swift
+│   │       ├── SimulatorPickerFeature.swift
+│   │       └── SimulatorPickerView.swift
+│   ├── Dependencies/               # TCA @Dependency 클라이언트
+│   │   ├── DatabaseClient.swift              # @DependencyClient (open/schema/rows)
+│   │   ├── FileWatcherClient.swift
+│   │   ├── SimulatorClient.swift
+│   │   └── RecentFilesClient.swift
 │   ├── Core/                       # UI-독립 도메인
 │   │   ├── Database/
 │   │   │   ├── DatabaseConnection.swift      # GRDB DatabaseQueue 래퍼 (readonly)
@@ -79,7 +89,7 @@ Storefront/
 └── .gitignore
 ```
 
-**아키텍처**: MVVM-lite. `@Observable` ViewModel이 Core 서비스를 소유, View는 ViewModel만 참조. Repository/UseCase 추상화는 도입하지 않음 (과설계 방지).
+**아키텍처**: **The Composable Architecture (TCA)** v1.15+. 각 피처는 `@Reducer` + `@ObservableState` 쌍. 상위 루트 `AppFeature`가 자식 피처를 `Scope`로 합성. 사이드이펙트·의존성은 `@Dependency`로 주입 (`DatabaseClient`, `FileWatcherClient`, `SimulatorClient`, `RecentFilesClient`). View는 `StoreOf<Feature>` 또는 `@Bindable var store` 로 State 바인딩. 테스트는 `TestStore` 기반.
 
 ---
 
@@ -91,6 +101,7 @@ Storefront/
 | **SwiftData 파싱** | GRDB로 내부 SQLite 직접 읽기 | `Z_METADATA` 존재 여부로 판별, `Z_` 접두어 제거로 컬럼명 정규화. NSManagedObjectModel 역직렬화는 v1 스킵. |
 | **파일 감시** | `DispatchSource.makeFileSystemObjectSource` | 단일 파일엔 FSEventStream보다 가볍고 Swift-native. WAL 모드 대응으로 `-wal`, `-shm`도 감시, rename 시 재오픈. |
 | **시뮬레이터 탐색** | `xcrun simctl list --json` + FS 글로빙 하이브리드 | simctl만으로는 앱 컨테이너 경로 부재. `~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application/*/` 글로빙 필수. `Info.plist`의 `MCMMetadataIdentifier`로 번들ID 표시. |
+| **아키텍처** | TCA v1.15+ (@Reducer / @ObservableState) | Redux-like 단방향 흐름, TestStore로 액션 단위 테스트, @Dependency로 사이드이펙트 격리. 뷰어 앱이지만 멀티 피처(Welcome/Browser/Simulator) 조합이라 TCA 가치 있음. CLI 빌드 시 `-skipMacroValidation` 필요. |
 
 **macOS 26 Tahoe SwiftUI 신기능 활용**
 - `NavigationSplitView` 3-column (소스 / 테이블 / 행)

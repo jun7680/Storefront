@@ -24,6 +24,9 @@ packages:
   GRDB:
     url: https://github.com/groue/GRDB.swift
     from: 7.5.0
+  ComposableArchitecture:
+    url: https://github.com/pointfreeco/swift-composable-architecture
+    from: 1.15.0
 
 targets:
   Storefront:
@@ -37,6 +40,8 @@ targets:
       - path: Storefront/Resources/Assets.xcassets
     dependencies:
       - package: GRDB
+      - package: ComposableArchitecture
+        product: ComposableArchitecture
     info:
       path: Storefront/Resources/Info.plist
       properties:

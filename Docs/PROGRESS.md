@@ -12,44 +12,58 @@
 git clone https://github.com/jun7680/Storefront.git
 cd Storefront
 git checkout feat/mvp-v0.1.0
-brew install xcodegen create-dmg   # 로컬 도구
-xcodegen generate                   # .xcodeproj 재생성 (gitignore됨)
-open Storefront.xcodeproj
+brew install xcodegen create-dmg
+xcodegen generate                      # .xcodeproj 재생성 (gitignore됨)
+open Storefront.xcodeproj              # Xcode에서 ⌘R
+# 첫 실행 시 TCA 매크로 "Trust & Enable" 프롬프트 → 허용
+# CLI 빌드: xcodebuild ... -skipMacroValidation -skipPackagePluginValidation
 ```
+
+## 아키텍처 요약
+
+- **TCA (The Composable Architecture) v1.15+** — `@Reducer` + `@ObservableState` 기반
+- 루트 `AppFeature`가 자식 피처를 `Scope`로 합성
+- 사이드이펙트는 `@Dependency` 주입 (Phase 2+에서 `DatabaseClient` 등 추가)
+- 테스트: `TestStore` 기반 액션 단위 검증
 
 ## Phase 진행 상태
 
 | Phase | 상태 | 메모 |
 |---|---|---|
-| **1. Xcode 프로젝트 부트스트랩** | ✅ 완료 | xcodegen 기반, macOS 26, Swift 6, GRDB 7.5 SPM, Welcome 화면 빌드 성공 |
-| **초기 문서 · 라이선스 · Asset** | ✅ 완료 | LICENSE(MIT), README 확장, Sky/Orange 컬러 등록 |
-| **2. SQLite 파일 열기 + 테이블 리스트** | ⏳ 대기 | DatabaseConnection / SchemaInspector / BrowserView / .fileImporter / RecentFilesStore |
-| **3. 행 뷰어 + 라이브 리로드** | ⏳ 대기 | RowFetcher / 동적 Table / CellView / FileWatcher(DispatchSource) / Toast / Inspector |
-| **4. 시뮬레이터 앱 자동 탐색** | ⏳ 대기 | SimulatorScanner (simctl JSON + FS 글로빙) / SimulatorPickerView |
-| **5. SwiftData 스토어 지원** | ⏳ 대기 | SwiftDataDetector(Z_METADATA) / SwiftDataDecoder / .store 확장자 / SampleGenerator CLI |
-| **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist / scripts/make-icon.sh |
-| **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml / bug_report.yml |
+| **1. Xcode 프로젝트 부트스트랩** | ✅ 완료 | xcodegen, macOS 26, Swift 6, GRDB 7.5 + TCA 1.15 SPM |
+| **초기 문서 · 라이선스 · Asset** | ✅ 완료 | LICENSE(MIT), README, Sky/Orange 컬러 |
+| **TCA 리팩터** | ✅ 완료 | AppFeature(@Reducer, @ObservableState) / AppView / WelcomeView(StoreOf<AppFeature>) / TestStore 3건 통과 |
+| **2. SQLite 파일 열기 + 테이블 리스트** | ⏳ 대기 | BrowserFeature(@Reducer) / DatabaseClient(@DependencyClient) / SchemaInspector / NavigationSplitView |
+| **3. 행 뷰어 + 라이브 리로드** | ⏳ 대기 | RowFetcher / dynamic Table / CellView / FileWatcherClient(@Dependency) / Toast |
+| **4. 시뮬레이터 앱 자동 탐색** | ⏳ 대기 | SimulatorClient(@DependencyClient) / SimulatorPickerFeature |
+| **5. SwiftData 스토어 지원** | ⏳ 대기 | SwiftDataDetector(Z_METADATA) / Decoder / .store 확장자 |
+| **6. DMG 빌드 파이프라인** | ⏳ 대기 | Makefile / scripts/build.sh, make-dmg.sh, ExportOptions.plist |
+| **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml (매크로 검증 스킵 플래그 포함) |
 
 ## 설계 참조
 
-- 전체 설계·기술 선택: [Docs/PLAN.md](./PLAN.md)
-- 색상: Sky Blue `#5AA7E6` + Sunset Orange `#FF9F5A` (Assets.xcassets의 `AppPrimary`/`AppAccent`)
+- 전체 설계: [Docs/PLAN.md](./PLAN.md)
+- 색상: Sky Blue `#5AA7E6` + Sunset Orange `#FF9F5A`
 
-## 최근 검증
+## 최근 검증 (2026-04-16)
 
-- **Phase 1**: `xcodebuild -project Storefront.xcodeproj -scheme Storefront -configuration Debug build` → BUILD SUCCEEDED
-- Welcome 화면 육안 확인은 사용자 검토 대기 중
+- **TCA 빌드**: `xcodebuild … -skipMacroValidation build` → BUILD SUCCEEDED
+- **TCA 테스트**: TestStore 3건 통과 (초기 상태 / openButtonTapped / fileImported 성공)
+- Welcome 화면 육안 검수 완료 (사용자 승인)
 
 ## 다음 작업 시작 지점
 
-**Phase 2 — SQLite 파일 열기**
-1. `Storefront/Core/Database/DatabaseConnection.swift` (GRDB DatabaseQueue readonly 래퍼)
-2. `Storefront/Core/Database/SchemaInspector.swift` (sqlite_master 쿼리로 테이블 목록)
-3. `Storefront/Features/Browser/BrowserView.swift` (NavigationSplitView 3-column)
-4. `Storefront/Features/Browser/TableListView.swift`
-5. `Storefront/Features/Browser/BrowserViewModel.swift` (@Observable)
-6. `Storefront/Services/RecentFilesStore.swift` (UserDefaults security-scoped bookmark)
-7. `StorefrontApp.swift`에 `.fileImporter` 연결
+**Phase 2 — SQLite 파일 열기 + 테이블 리스트 (TCA)**
+
+파일 생성 순서:
+1. `Storefront/Dependencies/DatabaseClient.swift` — `@DependencyClient` 래퍼 (GRDB DatabaseQueue readonly)
+   - `open(URL) async throws -> DatabaseHandle`
+   - `tables(DatabaseHandle) async throws -> [TableInfo]`
+2. `Storefront/Core/Database/SchemaInspector.swift` — sqlite_master 조회 로직 (Client 내부 구현용)
+3. `Storefront/Features/Browser/BrowserFeature.swift` — `@Reducer`, State에 현재 URL/테이블 목록/선택, Action에 `.documentLoaded(tables)`, `.tableSelected`
+4. `Storefront/Features/Browser/BrowserView.swift` — `NavigationSplitView`, 사이드바에 테이블 리스트
+5. `AppFeature`에 Browser 자식 피처 scope 추가 — `currentDocumentURL`이 생기면 Browser로 전환
+6. `StorefrontTests/BrowserFeatureTests.swift` — TestStore로 load/select 액션 테스트
 
 ## 저장소 상태
 
@@ -57,3 +71,4 @@ open Storefront.xcodeproj
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
+- Last commit on feat/mvp-v0.1.0: TCA 리팩터 완료

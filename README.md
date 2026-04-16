@@ -55,6 +55,12 @@ xcodegen generate           # regenerate Storefront.xcodeproj from project.yml
 open Storefront.xcodeproj   # ⌘R to run in Xcode
 ```
 
+On first open in Xcode, you will be prompted to **trust Swift macros** from TCA (ComposableArchitecture, CasePaths, Perception, Dependencies) — click "Trust & Enable". For CLI builds, pass `-skipMacroValidation`.
+
+### Architecture
+
+Built with [The Composable Architecture (TCA)](https://github.com/pointfreeco/swift-composable-architecture) — every feature is a `@Reducer` with `@ObservableState`, composed into a single `Store`. Navigation, dependencies, and side effects flow through reducers; views are thin projections of state.
+
 Or build a DMG locally:
 ```bash
 make dmg    # produces build/Storefront.dmg

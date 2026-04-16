@@ -1,7 +1,8 @@
+import ComposableArchitecture
 import SwiftUI
 
 struct WelcomeView: View {
-    @Environment(AppState.self) private var appState
+    let store: StoreOf<AppFeature>
 
     var body: some View {
         VStack(spacing: 24) {
@@ -27,7 +28,7 @@ struct WelcomeView: View {
             }
 
             Button {
-                appState.openFileRequested = true
+                store.send(.openButtonTapped)
             } label: {
                 Label("파일 열기", systemImage: "tray.and.arrow.down")
                     .font(.headline)
@@ -51,7 +52,8 @@ struct WelcomeView: View {
 }
 
 #Preview {
-    WelcomeView()
-        .environment(AppState())
-        .frame(width: 900, height: 560)
+    WelcomeView(
+        store: Store(initialState: AppFeature.State()) { AppFeature() }
+    )
+    .frame(width: 900, height: 560)
 }
