@@ -1,0 +1,51 @@
+name: Bug report
+description: Storefront에서 발견한 문제를 알려주세요
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 무슨 일이 일어났나요?
+      description: 재현 단계와 기대한 동작을 알려주세요.
+      placeholder: |
+        1. 앱을 열고 `.sqlite` 파일을 선택했더니…
+        2. 기대: …
+        3. 실제: …
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS 버전
+      placeholder: "macOS 26.0 / Tahoe"
+    validations:
+      required: true
+
+  - type: input
+    id: storefront-version
+    attributes:
+      label: Storefront 버전
+      description: 메뉴바 Storefront → About Storefront 또는 DMG 파일명에서 확인
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: db-type
+    attributes:
+      label: 대상 DB 종류
+      options:
+        - SQLite (일반)
+        - SwiftData 스토어 (.store)
+        - iOS 시뮬레이터 앱 DB
+        - 기타
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Console 로그 또는 스크린샷
+      description: 에러 메시지나 스크린샷이 있으면 붙여주세요.
+      render: shell

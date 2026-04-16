@@ -23,10 +23,12 @@ struct DynamicRowGrid: View {
                         header(columnWidth: columnWidth, totalWidth: totalWidth)
                     }
                 }
-                .frame(minWidth: geo.size.width, alignment: .topLeading)
-                .frame(maxHeight: .infinity, alignment: .top)
+                .frame(
+                    minWidth: geo.size.width,
+                    minHeight: geo.size.height,
+                    alignment: .topLeading
+                )
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 

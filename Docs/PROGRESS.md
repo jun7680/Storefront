@@ -38,7 +38,7 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 | **4. 시뮬레이터 앱 자동 탐색** | ✅ 완료 | SimulatorScanner(simctl JSON + FS 글로빙) / SimulatorClient / SimulatorPickerFeature(DisclosureGroup 트리) / Welcome의 "시뮬레이터" 버튼(⌘L) + Welcome 드래그&드롭 |
 | **5. SwiftData 스토어 지원** | ✅ 완료 | SwiftDataDetector(Z_METADATA/Z_PRIMARYKEY 판별) + SwiftDataDecoder(Z 접두어 정규화) + TableInfo.Classification(swiftDataEntity/swiftDataSystem) + 사이드바 Entities/Tables/Views/System 섹션 분리 + 원본명 tooltip + DynamicRowGrid 전체 폭 flex-fill |
 | **6. DMG 빌드 파이프라인** | ✅ 완료 | Makefile(setup/generate/build/test/archive/dmg/icon/clean) + scripts/build.sh (xcodebuild archive + exportArchive + ad-hoc codesign) + scripts/make-dmg.sh (create-dmg 우선, hdiutil fallback) + scripts/make-icon.sh (sips로 전 해상도) + scripts/ExportOptions.plist. `make dmg` → build/Storefront-0.1.0.dmg 4.8MB 생성 검증됨 |
-| **7. GitHub Actions 릴리스** | ⏳ 대기 | .github/workflows/build.yml, release.yml (매크로 검증 스킵 플래그 포함) |
+| **7. GitHub Actions 릴리스** | ✅ 완료 | .github/workflows/build.yml (PR/push 시 test+build), release.yml (tag v* → make dmg → softprops/action-gh-release@v2, SHA256SUMS 자동 생성), .github/ISSUE_TEMPLATE/bug_report.yml |
 
 ## 설계 참조
 
@@ -53,13 +53,13 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 
 ## 다음 작업 시작 지점
 
-**Phase 7 — GitHub Actions 릴리스**
+**MVP v0.1.0 완료** 🎉 — 모든 Phase 통과. 남은 액션:
 
-파일 생성 순서:
-1. `.github/workflows/build.yml` — PR/push 시 macos-latest runner에서 `xcodegen generate` + `make test` + `make build`. `-skipMacroValidation` 필수
-2. `.github/workflows/release.yml` — `on: push: tags: ['v*']` 에 트리거, `make dmg` → `softprops/action-gh-release@v2`로 `.dmg` Release 업로드, 태그 메시지를 release notes로
-3. `.github/ISSUE_TEMPLATE/bug_report.yml` — 간단한 버그 리포트 템플릿
-4. 로컬에서 `git tag v0.1.0-rc1 && git push origin v0.1.0-rc1` → Actions 로그 확인 → Release에 DMG 업로드 검증
+1. **릴리스 검증**: 로컬에서 `git tag v0.1.0-rc1 && git push origin v0.1.0-rc1` → Actions `release.yml` 실행 로그 확인 → GitHub Releases에 DMG+SHA256 업로드 검증
+2. **프리뷰 피드백 반영**: 필요 시 색상/레이아웃/문구 조정
+3. **feat/mvp-v0.1.0 → master merge**: 모든 Phase 안정되면 PR 오픈 or 직접 merge
+4. **Public 전환**: 릴리스 준비되면 `gh repo edit --visibility public`
+5. **v0.2 로드맵**: 실제 iPhone 지원 / 커스텀 앱 아이콘 / Homebrew Cask / SQL 콘솔 등
 
 ## 저장소 상태
 
@@ -67,4 +67,4 @@ open Storefront.xcodeproj              # Xcode에서 ⌘R
 - Visibility: **Private** (v0.1.0 릴리스 전까지)
 - Default branch: `master`
 - Active branch: `feat/mvp-v0.1.0`
-- Last commit on feat/mvp-v0.1.0: Phase 6 완료 (DMG 파이프라인) + 그리드 topLeading 고정 / 전체 좌측 정렬
+- Last commit on feat/mvp-v0.1.0: Phase 7 완료 (GitHub Actions) + 그리드 minHeight 상단 고정 — MVP 전체 완료
