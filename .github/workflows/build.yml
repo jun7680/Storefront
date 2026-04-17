@@ -1,0 +1,49 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [master, main]
+    paths-ignore:
+      - "Docs/**"
+      - "README.md"
+      - "LICENSE"
+  pull_request:
+    branches: [master, main]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: xcodebuild test
+    runs-on: macos-26
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show versions
+        run: |
+          xcodebuild -version
+          swift --version
+          sw_vers
+
+      - name: Install tools
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Resolve Swift Package Manager deps
+        run: xcodebuild -resolvePackageDependencies -project Storefront.xcodeproj
+
+      - name: Run tests
+        run: make test
+
+      - name: Debug build
+        run: make build

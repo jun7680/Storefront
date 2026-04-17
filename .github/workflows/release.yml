@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "태그 이름 (예: v0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build DMG & publish release
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Install tools
+        run: brew install xcodegen create-dmg
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Resolve SPM deps
+        run: xcodebuild -resolvePackageDependencies -project Storefront.xcodeproj
+
+      - name: Run tests (gate)
+        run: make test
+
+      - name: Build DMG
+        run: make dmg
+
+      - name: Locate DMG
+        id: locate
+        run: |
+          DMG=$(ls build/Storefront-*.dmg | head -n 1)
+          echo "dmg=$DMG" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_REF_NAME:-${{ github.event.inputs.tag }}}" >> "$GITHUB_OUTPUT"
+          echo "Built: $DMG"
+          ls -lh "$DMG"
+
+      - name: Compute SHA256
+        id: shasum
+        run: |
+          cd build
+          shasum -a 256 "$(basename "${{ steps.locate.outputs.dmg }}")" | tee SHA256SUMS.txt
+          echo "file=build/SHA256SUMS.txt" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.locate.outputs.tag }}
+          name: Storefront ${{ steps.locate.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.locate.outputs.tag, '-') }}
+          generate_release_notes: true
+          body: |
+            ## 설치
+
+            1. `Storefront-*.dmg` 다운로드 → 더블클릭 → `Applications/`로 드래그
+            2. **첫 실행 시 Gatekeeper 우회**:
+               - Finder → `Storefront.app` 우클릭 → 열기 → 열기
+               - 또는: `xattr -cr /Applications/Storefront.app`
+
+            **Storefront는 서명되지 않은 오픈소스 빌드**입니다. Apple Developer 프로그램을 사용하지 않으므로 첫 실행 시 보안 경고가 표시됩니다.
+
+            ## 검증
+
+            SHA-256 해시는 첨부된 `SHA256SUMS.txt`를 참조하세요.
+          files: |
+            ${{ steps.locate.outputs.dmg }}
+            ${{ steps.shasum.outputs.file }}
