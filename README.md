@@ -230,7 +230,7 @@ Issues and PRs are welcome. This is my first open-source project, so please be g
 
 ## 📜 License
 
-[MIT](./LICENSE) © 2026 Injun Mo
+[MIT](./LICENSE) © 2026 Injun
 
 ---
 
