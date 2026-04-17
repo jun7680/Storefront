@@ -1,22 +1,71 @@
-# Storefront
-
-> Modern SQLite / SwiftData viewer for macOS — native SwiftUI, live reload, built for iOS developers.
+<p align="center">
+  <img src="Docs/assets/hero.svg" alt="Storefront — Modern SQLite and SwiftData viewer for macOS" width="100%">
+</p>
 
 <p align="center">
-  <em>🚧 Pre-alpha — v0.1.0 is under active development.</em>
+  <a href="https://github.com/jun7680/Storefront/releases/latest">
+    <img src="https://img.shields.io/github/v/release/jun7680/Storefront?include_prereleases&label=release&color=5AA7E6" alt="Latest release">
+  </a>
+  <a href="https://github.com/jun7680/Storefront/actions/workflows/build.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/jun7680/Storefront/build.yml?branch=master&label=build" alt="Build status">
+  </a>
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/github/license/jun7680/Storefront?color=FF9F5A" alt="MIT License">
+  </a>
+  <img src="https://img.shields.io/badge/macOS-26+-5AA7E6" alt="macOS 26+">
+  <img src="https://img.shields.io/badge/Swift-6-FF9F5A" alt="Swift 6">
+  <a href="https://github.com/jun7680/Storefront/stargazers">
+    <img src="https://img.shields.io/github/stars/jun7680/Storefront?style=social" alt="GitHub stars">
+  </a>
+</p>
+
+<p align="center">
+  <strong>Modern SQLite &amp; SwiftData viewer for macOS.</strong><br>
+  <em>Native SwiftUI · Live reload · Built for iOS developers</em>
+</p>
+
+<p align="center">
+  🚧 <em>Pre-alpha — v0.1.0 is under active development.</em>
 </p>
 
 ---
 
-## Features
+## ✨ Features
 
-- 📂 **Open .sqlite / .db / .store files** — drag-and-drop or File › Open (⌘O)
-- 🗂 **Browse tables and rows** — 3-column split view with dynamic columns, sortable, resizable
-- 🔄 **Live reload** — automatically refresh when the file changes (WAL-aware)
-- 📱 **iOS Simulator auto-discovery** — list installed apps and open their databases in one click
-- 🍂 **SwiftData store support** — automatic `Z_` prefix normalization, metadata-table awareness
-- 🎨 **Native macOS feel** — Sky Blue × Sunset Orange palette, dark mode first-class
-- 🔒 **Read-only** — your databases are never written to
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**📂 Open any SQLite store**
+Drag & drop or ⌘O for `.sqlite`, `.db`, `.store` files.
+
+**🗂 Browse tables and rows**
+3-column split view — sortable, resizable, dynamic.
+
+**🔄 Live reload**
+Auto-refresh on file change, fully WAL-aware.
+
+**🔒 Read-only by design**
+Your databases are never written to.
+
+</td>
+<td width="50%" valign="top">
+
+**📱 Simulator auto-discovery**
+One click to open any installed iOS simulator app's DB.
+
+**🍂 SwiftData native**
+Automatic `Z_` prefix normalization + metadata awareness.
+
+**🎨 Native macOS feel**
+Sky Blue × Sunset Orange palette, dark mode first-class.
+
+**⚡ Built in SwiftUI + TCA**
+Modern reactive stack — snappy, testable, observable.
+
+</td>
+</tr>
+</table>
 
 ## Requirements
 
@@ -154,25 +203,38 @@ Both `make install` and `make dmg` finish with an opt-in star prompt — if you 
 
 ---
 
-## Architecture
+## 🏛 Architecture
 
-Built with [The Composable Architecture (TCA)](https://github.com/pointfreeco/swift-composable-architecture) — 모든 피처는 `@Reducer` + `@ObservableState` 쌍으로 구성되며, 루트 `AppFeature`에 `Scope`로 합성됩니다. 사이드이펙트(DB 읽기, 파일 감시, 시뮬레이터 스캔)는 `@Dependency` 클라이언트로 격리되어 `TestStore`로 단위 테스트됩니다.
+Built with [The Composable Architecture (TCA)](https://github.com/pointfreeco/swift-composable-architecture). Every feature is a `@Reducer` + `@ObservableState` pair composed into the root `AppFeature` via `Scope`. Side effects — DB reads, file watching, simulator scanning — are isolated behind `@Dependency` clients and unit-tested with `TestStore`.
 
-- `Storefront/Features/` — TCA 피처 (App, Welcome, Browser, SimulatorPicker)
-- `Storefront/Dependencies/` — `DatabaseClient`, `FileWatcherClient`, `SimulatorClient`
-- `Storefront/Core/` — UI-독립 도메인 (GRDB 기반 SQLite/SwiftData 파싱)
-- `Docs/PLAN.md`, `Docs/PROGRESS.md` — 설계·진행 상태
+```
+Storefront/
+├── App/              # Entry point (StorefrontApp)
+├── Features/         # TCA features — App, Welcome, Browser, SimulatorPicker
+├── Dependencies/     # DatabaseClient, FileWatcherClient, SimulatorClient
+├── Core/             # UI-agnostic domain — GRDB SQLite + SwiftData parsing
+└── Resources/        # Assets, entitlements, Info.plist
+```
 
-## Roadmap
+See [`Docs/PLAN.md`](./Docs/PLAN.md) for the full design doc and [`Docs/PROGRESS.md`](./Docs/PROGRESS.md) for phase status.
 
-- [x] v0.1.0 — core viewer MVP (SQLite + SwiftData + live reload + simulator scan)
-- [ ] v0.2.0 — custom app icon, SQL read-only console, Homebrew Cask
-- [ ] v0.3.0 — export to CSV/JSON, BLOB image preview, column filters
+## 🗺 Roadmap
 
-## Contributing
+- [x] **v0.1.0** — core viewer MVP (SQLite + SwiftData + live reload + simulator scan)
+- [ ] **v0.2.0** — custom app icon, SQL read-only console, Homebrew Cask
+- [ ] **v0.3.0** — export to CSV/JSON, BLOB image preview, column filters
 
-Issues and PRs welcome. This is my first open-source project, so please be gentle 🙏. For substantial changes, open an issue first to discuss.
+## 🤝 Contributing
 
-## License
+Issues and PRs are welcome. This is my first open-source project, so please be gentle 🙏. For substantial changes, open an issue first so we can align on direction.
+
+## 📜 License
 
 [MIT](./LICENSE) © 2026 Injun Mo
+
+---
+
+<p align="center">
+  <sub>Built with 💙 and ☀️ on macOS</sub><br>
+  <sub>If Storefront saves you a few minutes, give it a ⭐ — it really helps.</sub>
+</p>
