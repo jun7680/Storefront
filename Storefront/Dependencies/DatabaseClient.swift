@@ -40,7 +40,9 @@ private actor DatabaseRegistry {
     func queue(for url: URL) throws -> DatabaseQueue {
         if let existing = queues[url] { return existing }
         var config = Configuration()
-        config.readonly = true
+        config.prepareDatabase { db in
+            try db.execute(sql: "PRAGMA query_only = ON")
+        }
         let q = try DatabaseQueue(path: url.path, configuration: config)
         queues[url] = q
         return q

@@ -51,14 +51,19 @@ private final class FileWatcher: @unchecked Sendable {
     private func watch() {
         guard !isCancelled else { return }
         cancelSources()
-        sources = Self.candidateURLs(for: url).compactMap { candidate in
-            makeSource(for: candidate)
+        for path in Self.siblingPaths(for: url) where FileManager.default.fileExists(atPath: path) {
+            if let s = makeFileSource(path: path) {
+                sources.append(s)
+            }
+        }
+        if let dirSource = makeDirectorySource(path: url.deletingLastPathComponent().path) {
+            sources.append(dirSource)
         }
         sources.forEach { $0.resume() }
     }
 
-    private func makeSource(for url: URL) -> DispatchSourceFileSystemObject? {
-        let fd = open(url.path, O_EVTONLY)
+    private func makeFileSource(path: String) -> DispatchSourceFileSystemObject? {
+        let fd = open(path, O_EVTONLY)
         guard fd >= 0 else { return nil }
         let source = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
@@ -73,9 +78,30 @@ private final class FileWatcher: @unchecked Sendable {
                 self.watch()
             }
         }
-        source.setCancelHandler {
-            close(fd)
+        source.setCancelHandler { close(fd) }
+        return source
+    }
+
+    private func makeDirectorySource(path: String) -> DispatchSourceFileSystemObject? {
+        let fd = open(path, O_EVTONLY)
+        guard fd >= 0 else { return nil }
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .extend],
+            queue: queue
+        )
+        source.setEventHandler { [weak self] in
+            guard let self, !self.isCancelled else { return }
+            let watchedCount = self.sources.count - 1
+            let existingCount = Self.siblingPaths(for: self.url).filter {
+                FileManager.default.fileExists(atPath: $0)
+            }.count
+            if existingCount != watchedCount {
+                self.watch()
+                self.onChange()
+            }
         }
+        source.setCancelHandler { close(fd) }
         return source
     }
 
@@ -91,11 +117,8 @@ private final class FileWatcher: @unchecked Sendable {
         }
     }
 
-    private static func candidateURLs(for url: URL) -> [URL] {
+    private static func siblingPaths(for url: URL) -> [String] {
         let base = url.path
-        let siblings = [base, base + "-wal", base + "-shm"]
-        return siblings
-            .filter { FileManager.default.fileExists(atPath: $0) }
-            .map { URL(fileURLWithPath: $0) }
+        return [base, base + "-wal", base + "-shm"]
     }
 }
