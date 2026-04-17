@@ -20,90 +20,137 @@
 
 ## Requirements
 
-- macOS 26 Tahoe 이상
-- (개발자) Xcode 26 이상, Homebrew
+| | Version | Needed for |
+|---|---|---|
+| **macOS** | 26 Tahoe or later | Running the app |
+| **Xcode** | 26 or later | Building from source (B, C) |
+| **Homebrew** | latest | Installing `xcodegen`, `create-dmg` (B, C) |
+| **GitHub CLI** (`gh`) | optional | Auto-star after `make install` (C) |
 
 ---
 
 ## Install
 
-Storefront를 설치하는 방법은 세 가지입니다. 일반 사용자는 **A**로, 소스에서 빌드하고 싶은 개발자는 **B/C**로 가세요.
+Three paths depending on who you are. End users go with **A**. Developers who want to build from source pick **B** (Xcode GUI) or **C** (command line).
 
-### A. DMG 다운로드 (일반 사용자) ⭐ 추천
+### Prerequisites — one-time tool setup
 
-1. [Releases 페이지](https://github.com/jun7680/Storefront/releases)에서 `Storefront-*.dmg` 다운로드
-2. DMG를 더블클릭 → `Storefront.app`을 `Applications` 폴더로 드래그
-3. **첫 실행 — Gatekeeper 우회 필요** (아래 세 가지 중 편한 방법):
+> Skip this block if you only plan to use path **A**.
 
-   **방법 1: Finder (가장 간단)**
-   - `Applications` 폴더에서 `Storefront.app` **우클릭 → 열기 → 열기**
-   - macOS 15+에선 **시스템 설정 › 개인정보 보호 및 보안 › "그래도 열기"** 한 번만 눌러주면 됩니다
+**1. Install Homebrew** (macOS package manager):
 
-   **방법 2: 터미널 한 줄**
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+**2. Install Xcode 26+** — from the [Mac App Store](https://apps.apple.com/us/app/xcode/id497799835) or [Apple Developer portal](https://developer.apple.com/download/applications/). After installing, register the command-line tools:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app
+xcodebuild -license accept   # accept the SDK license
+```
+
+**3. Install build helpers**:
+
+```bash
+brew install xcodegen create-dmg
+```
+
+**4. (Optional) Install GitHub CLI** — enables the one-click star prompt at the end of `make install` / `make dmg`:
+
+```bash
+brew install gh
+gh auth login
+```
+
+---
+
+### A. Download the DMG (end users) ⭐ Recommended
+
+1. Grab `Storefront-*.dmg` from the [Releases page](https://github.com/jun7680/Storefront/releases)
+2. Double-click the DMG → drag `Storefront.app` into `Applications`
+3. **First launch — bypass Gatekeeper** (pick whichever is easiest):
+
+   **Option 1: Finder (simplest)**
+   - In `Applications`, **right-click `Storefront.app` → Open → Open**
+   - On macOS 15+ you may also see a button under **System Settings › Privacy & Security › "Open Anyway"** — click it once.
+
+   **Option 2: One-liner in Terminal**
    ```bash
    xattr -cr /Applications/Storefront.app
    ```
-   이후부터는 그냥 더블클릭해서 열립니다.
+   Afterwards the app opens on regular double-click forever.
 
-   **방법 3: DMG 자체의 격리 속성 제거 (마운트 전)**
+   **Option 3: Strip the quarantine attribute from the DMG before mounting**
    ```bash
    xattr -d com.apple.quarantine ~/Downloads/Storefront-*.dmg
    ```
 
-> **왜 경고가 뜨나요?** Storefront는 Apple Developer Program ($99/년) 없이 배포되는 순수 오픈소스 프로젝트라 Apple의 공증(notarization)을 거치지 않았습니다. 코드는 [GitHub](https://github.com/jun7680/Storefront)에서 그대로 확인 가능합니다.
+> **Why the warning?** Storefront ships without Apple notarization because it is a pure open-source side project — no Apple Developer Program ($99/year) is involved. The source on [GitHub](https://github.com/jun7680/Storefront) is exactly what you run.
 
-### B. Xcode로 클론 + 실행 (개발자, 가장 빠른 방법)
+### B. Clone & run in Xcode (fastest for developers)
+
+Requires the prerequisites above (Homebrew, Xcode, xcodegen).
 
 ```bash
-# 1. 도구 설치 (한 번만)
-brew install xcodegen
-
-# 2. 소스 받기
 git clone https://github.com/jun7680/Storefront.git
 cd Storefront
 
-# 3. Xcode 프로젝트 생성 (gitignore되어 있어서 매번 필요)
-xcodegen generate
-
-# 4. Xcode 열기
-open Storefront.xcodeproj
+xcodegen generate              # regenerate the .xcodeproj (it is gitignored)
+open Storefront.xcodeproj      # then press ⌘R in Xcode
 ```
 
-Xcode에서 **⌘R** 누르면 실행됩니다.
+> **First build only**: Xcode will prompt **"Trust & Enable"** for the TCA macro plugins (`ComposableArchitectureMacros`, `CasePathsMacros`, `DependenciesMacros`, `PerceptionMacros`). Click **Trust & Enable** for each — this is a one-time security prompt.
+>
+> If Xcode blocks every build with a macro error, disable macro fingerprint validation globally (then restart Xcode):
+> ```bash
+> defaults write com.apple.dt.Xcode IDESkipMacroFingerprintValidation -bool YES
+> defaults write com.apple.dt.Xcode IDESkipPackagePluginFingerprintValidatation -bool YES
+> ```
 
-> **첫 실행 시**: Xcode가 TCA 매크로(ComposableArchitecture, CasePaths, Perception, Dependencies) "Trust & Enable" 프롬프트를 띄웁니다 — 전부 **Trust & Enable** 눌러주세요.
+### C. Build from the command line
 
-### C. 터미널로 빌드 + 실행 (CLI 선호)
+Requires the prerequisites above.
 
 ```bash
-brew install xcodegen create-dmg
 git clone https://github.com/jun7680/Storefront.git
 cd Storefront
 
-make build                                          # Debug 빌드
-open build/Build/Products/Debug/Storefront.app      # 실행
+make build                                          # Debug build
+open build/Build/Products/Debug/Storefront.app      # launch it
 ```
 
-로컬에서 배포용 DMG까지 만들고 싶다면:
+Or copy the Debug build directly into `/Applications`:
+
+```bash
+make install                   # builds and copies to /Applications/Storefront.app
+```
+
+Want the distributable DMG locally?
+
 ```bash
 make dmg                        # → build/Storefront-0.1.0.dmg
-open build/Storefront-0.1.0.dmg # 더블클릭으로 확인
+open build/Storefront-0.1.0.dmg # mount and verify
 ```
+
+Both `make install` and `make dmg` finish with an opt-in star prompt — if you answer `y` and have `gh` authenticated, Storefront will be starred on your behalf; otherwise it opens the repo in your browser.
 
 ---
 
 ## Makefile targets
 
-| 명령 | 하는 일 |
+| Command | What it does |
 |---|---|
-| `make setup` | `xcodegen`, `create-dmg` 설치 (Homebrew) |
-| `make generate` | `project.yml` → `Storefront.xcodeproj` 재생성 |
-| `make build` | Debug 빌드 |
-| `make test` | 단위 테스트 실행 |
-| `make archive` | Release 아카이브 + ad-hoc 서명 |
-| `make dmg` | 전체 빌드 후 `build/Storefront-<version>.dmg` 패키징 |
-| `make icon` | SF 로고 기반 앱 아이콘 자동 산출 |
-| `make clean` | `build/` 정리 |
+| `make setup` | Install `xcodegen` and `create-dmg` via Homebrew |
+| `make generate` | Regenerate `Storefront.xcodeproj` from `project.yml` |
+| `make build` | Debug build |
+| `make install` | Debug build → copy to `/Applications/Storefront.app` |
+| `make test` | Run unit tests |
+| `make archive` | Release archive with ad-hoc codesign |
+| `make dmg` | Full archive + package `build/Storefront-<version>.dmg` |
+| `make icon` | Regenerate `AppIcon.appiconset` (SF Symbol placeholder) |
+| `make star` | Opt-in GitHub star prompt (uses `gh` if logged in, else opens browser) |
+| `make clean` | Remove `build/` and derived data |
 
 ---
 
