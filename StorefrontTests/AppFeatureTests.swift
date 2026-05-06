@@ -13,33 +13,41 @@ final class AppFeatureTests: XCTestCase {
         }
     }
 
-    func testFileImportedOpensBrowser() async {
+    func testFileImportedAppendsTab() async {
         let url = URL(fileURLWithPath: "/tmp/sample.sqlite")
         let store = TestStore(
             initialState: AppFeature.State(isFileImporterPresented: true)
         ) {
             AppFeature()
+        } withDependencies: {
+            $0.uuid = .incrementing
         }
         store.exhaustivity = .off
 
+        let expectedID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
         await store.send(.fileImported(url)) {
             $0.isFileImporterPresented = false
-            $0.browser = BrowserFeature.State(databaseURL: url)
+            $0.tabs = [BrowserTab.State(id: expectedID, databaseURL: url)]
+            $0.selectedTabID = expectedID
         }
     }
 
-    func testCloseDocumentClearsBrowser() async {
+    func testCloseCurrentTabRemovesSelectedTab() async {
         let url = URL(fileURLWithPath: "/tmp/sample.sqlite")
+        let id = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         let store = TestStore(
             initialState: AppFeature.State(
-                browser: BrowserFeature.State(databaseURL: url)
+                tabs: [BrowserTab.State(id: id, databaseURL: url)],
+                selectedTabID: id
             )
         ) {
             AppFeature()
         }
 
-        await store.send(.closeDocument) {
-            $0.browser = nil
+        await store.send(.closeCurrentTab) {
+            $0.tabs = []
+            $0.selectedTabID = nil
         }
     }
 }
