@@ -17,12 +17,19 @@ struct StorefrontApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
-                Button("Open…") { store.send(.openButtonTapped) }
+                Button("New Tab…") { store.send(.newTabButtonTapped) }
+                    .keyboardShortcut("t", modifiers: .command)
+                Button("Open File…") { store.send(.openButtonTapped) }
                     .keyboardShortcut("o", modifiers: .command)
+                Divider()
+                Button("Close Tab") { store.send(.closeCurrentTab) }
+                    .keyboardShortcut("w", modifiers: .command)
+                    .disabled(store.selectedTabID == nil)
             }
             CommandGroup(after: .toolbar) {
                 Button("Reload") { store.send(.reloadMenuSelected) }
                     .keyboardShortcut("r", modifiers: .command)
+                    .disabled(store.selectedTabID == nil)
             }
         }
     }

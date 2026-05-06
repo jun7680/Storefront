@@ -41,7 +41,7 @@ struct WelcomeView: View {
                 .keyboardShortcut("o", modifiers: .command)
 
                 Button {
-                    store.send(.simulatorButtonTapped)
+                    store.send(.newTabButtonTapped)
                 } label: {
                     Label("시뮬레이터", systemImage: "iphone.gen3")
                         .font(.headline)

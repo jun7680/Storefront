@@ -6,11 +6,23 @@ struct AppView: View {
     @Bindable var store: StoreOf<AppFeature>
 
     var body: some View {
-        Group {
-            if let browserStore = store.scope(state: \.browser, action: \.browser) {
-                BrowserView(store: browserStore)
-            } else {
-                WelcomeView(store: store)
+        VStack(spacing: 0) {
+            if !store.tabs.isEmpty {
+                TabBar(store: store)
+                Divider()
+            }
+
+            Group {
+                if let id = store.selectedTabID,
+                   let tabStore = store.scope(
+                    state: \.tabs[id: id]?.browser,
+                    action: \.tabs[id: id].browser
+                   ) {
+                    BrowserView(store: tabStore)
+                        .id(id)
+                } else {
+                    WelcomeView(store: store)
+                }
             }
         }
         .background(Color("AppBackground"))
